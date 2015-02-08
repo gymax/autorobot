@@ -1,0 +1,429 @@
+<html xmlns:v="urn:schemas-microsoft-com:vml"
+xmlns:o="urn:schemas-microsoft-com:office:office"
+xmlns:w="urn:schemas-microsoft-com:office:word"
+xmlns:m="http://schemas.microsoft.com/office/2004/12/omml"
+xmlns="http://www.w3.org/TR/REC-html40">
+<head>
+<meta http-equiv=Content-Type content="text/html; charset=big5">
+<style>
+.square_basic{
+    width:30pt;
+    height:30pt;
+    border-top:white;
+    border-left:white;
+    border-bottom:white;
+    border-right:white;
+    border-style:solid;
+    border-width:1.0pt;
+    padding:5pt 5pt 5pt 5pt;
+}
+.background_dark{
+    background:#D0D8E8;
+}
+.background_light{
+    background:#EEECE1;
+}
+.background_red{
+    background:red;
+}
+.background_blue{
+    background:blue;
+}
+.background_yellow{
+    background:yellow;
+}
+.border_top{
+    border-top:solid black;
+}
+.border_left{
+    border-left:solid black;
+}
+.border_bottom{
+    border-bottom:solid black;
+}
+.border_right{
+    border-right:solid black;
+}
+.occupied{
+    background:url(k.png);
+    background-size:30pt,30pt;
+}
+</style>
+<script>
+// default board setup
+//board [16][16];
+// 1. margin border
+//    [0]*, *[0], [15]*, *[15]
+// 2. pre-set border
+// ref. board_num.htm
+border_bottom=[29,31,37,41,50,62,64,81,87,103,104,107,135,136,148,150,157,160,183,185,191,193,206,218,227]; 
+border_top=[45,47,53,57,66,78,80,97,103,119,120,123,151,152,164,166,173,176,199,201,207,209,222,234,243]; 
+border_left=[4,10,30,38,57,67,79,87,97,107,119,121,135,137,148,157,166,186,200,210,223,228,234,245,252]; 
+border_right=[3,9,29,37,56,66,78,86,96,106,118,120,134,136,147,156,165,185,199,209,222,227,233,244,251]; 
+corner=[29,37,57,78,66,87,97,107,148,157,166,185,199,209,222,227,234];
+//corner=[199];
+var che_1=16;
+var che_2=0;
+var che = new Array(5);
+var target;
+var board = new Array(256);
+var move = new Array(256);
+var implicit_move_1 = new Array(256);
+var chess = new Array(256);
+
+function in2co(index) //index to coordinate
+{
+    var ans=new Object();
+    a=Math.floor(index/16);
+    b=index%16;
+    ans[0]=a;
+    ans[1]=b;
+    return ans;
+}
+function co2in(row,col) //coordinate to index
+{  
+    return row*16+col;
+}
+function Squared(index,b_top,b_bottom,b_left,b_right)
+{
+    this.index=index;
+    this.b_top=b_top;
+    this.b_bottom=b_bottom;
+    this.b_left=b_left;
+    this.b_right=b_right;
+    var a=in2co(this.index);
+    this.row=a[0]; 
+    this.col=a[1]; 
+}
+
+function load_defaut_board()
+{
+    board={}; //clear board{}
+    for(row=0;row<16;row++)
+    {
+        for(col=0;col<16;col++)
+        {
+           var index=co2in(row,col);
+           var i=0;
+           var btop=0,bottom=0,left=0,right=0; 
+           
+           //magin border
+           if(row==0) btop=1;       
+           if(row==15) bottom=1;  
+           if(col==0) left=1;          
+           if(col==15) right=1;
+           
+           //pre-set border
+           for(i=0;i<border_top.length;i++){
+                if(index==border_top[i]) btop=1;
+           }
+           for(i=0;i<border_left.length;i++){
+                if(index==border_left[i]) left=1;
+           }
+           for(i=0;i<border_bottom.length;i++){
+                if(index==border_bottom[i]) bottom=1;
+           }
+           for(i=0;i<border_right.length;i++){
+                if(index==border_right[i]) right=1;
+           }
+           board[index]=new Squared(index,btop,bottom,left,right);
+        }
+    }
+}
+var str;
+function show_board()
+{
+    str="";
+    str+="<table class='' border=0 cellspacing=1 cellpadding=1 align=left style='width:578.0pt;border-collapse:collapse;margin-left:7.2pt;mso-table-rspace:9.0pt;margin-right:7.2pt;mso-table-anchor-vertical:margin;mso-table-anchor-horizontal:margin;mso-table-left:left;mso-table-top:-27.35pt;mso-padding-alt:0cm 0cm 0cm 0cm'>";
+    for(row=0;row<16;row++)
+    {
+        str+=("<tr class=''>");
+        for(col=0;col<16;col++)
+        {
+           str+="<td width=60 class='";
+           str+="square_basic ";
+           //add background
+           if((col+row)%2) str+="background_dark "; else str+="background_light ";
+           
+           var index=co2in(row,col);
+           if(move[index]) str+="background_red ";
+           //if(index==che_1) str+="background_blue ";
+           if(implicit_move_1[index]) str+="background_yellow ";
+           if(chess[index]) str+="occupied ";
+           if(board[index].b_top)     str+="border_top ";
+           if(board[index].b_left)    str+="border_left ";
+           if(board[index].b_bottom)  str+="border_bottom ";                
+           if(board[index].b_right)   str+="border_right ";
+           str+="' title='"+index+"'>"
+           var i;
+           for(i=0;i<corner.length;i++){
+             if(corner[i]==index)
+              str+=""+move[index]+"";
+           }
+            str+="</td>";
+        }
+        str+="</tr>";
+    } 
+    str+="</table>";    
+    document.getElementById("demo").innerHTML = str;
+}
+
+function robot_place(position)
+{
+    chess[position]=1;
+}
+/* input position, direction */
+/* globe: move */
+/* return: next position */
+function next_stop(position,dir)
+{
+    var step;
+    // setup step 
+    switch(dir){
+        case "up":
+            step=-16;
+            break;
+        case "down":
+            step=16;
+            break;
+        case "left":
+            step=-1;
+            break;
+        case "right":
+            step=1;
+            break;
+    }
+    // check rule
+    var stop=0;
+    var next_position;
+    
+    while(stop!=1){
+        switch(dir){
+            case "up":
+                next_position=position+step;
+                if( next_position>255 || next_position<0 )
+                    next_position=position;  
+                stop=board[position].b_top;
+                if(chess[next_position]==1) stop=1;
+                break;
+            case "down":
+                next_position=position+step;
+                if( next_position>255 || next_position<0 )
+                    next_position=position;  
+                stop=board[position].b_bottom;
+                if(chess[next_position]==1) stop=1;
+                break;
+            case "left":      
+                next_position=position+step;
+                if( next_position>255 || next_position<0 )
+                    next_position=position;  
+                stop=board[position].b_left;
+                if(chess[next_position]==1) stop=1;
+                break;
+            case "right":
+                next_position=position+step;
+                if( next_position>255 || next_position<0 )
+                    next_position=position;  
+                stop=board[position].b_right;
+                if(chess[next_position]==1) stop=1;
+                
+                break;
+        }
+        if(stop!=1){
+            position+=step;
+            if( position>255 || position<0 )
+                position-=step;
+        }
+    }
+    return position;
+}
+function add_implicit_move(position)
+{
+    var up=position-16;
+    var down=position+16
+    var left=position-1;
+    var right=position+1;
+    //border check
+    if( up>255 || up<0 ) up=position; 
+    if( down>255 || down<0 ) down=position; 
+    if( left>255 || left<0 ) left=position; 
+    if( right>255 || right<0 ) right=position; 
+    
+    if(move[up]>0 && board[up].b_bottom==0) implicit_move_1[up]=1;
+    if(move[down]>0 && board[down].b_top==0) implicit_move_1[down]=1;
+    if(move[left]>0 && board[left].b_right==0) implicit_move_1[left]=1;
+    if(move[right]>0 && board[right].b_left==0) implicit_move_1[right]=1;
+    
+}
+/* input position, direction */
+/* globe: move */
+/* return: next position */
+function next_stop_find_implicit(position,dir)
+{
+    var step;
+    // setup step 
+    switch(dir){
+        case "up":
+            step=-16;
+            break;
+        case "down":
+            step=16;
+            break;
+        case "left":
+            step=-1;
+            break;
+        case "right":
+            step=1;
+            break;
+    }
+    // check rule
+    var stop=0;
+    var next_position;
+    
+    while(stop!=1){
+        switch(dir){
+            case "up":
+                next_position=position+step;
+                if( next_position>255 || next_position<0 )
+                    next_position=position;  
+                stop=board[position].b_top;
+                if(chess[next_position]==1) stop=1;
+                break;
+            case "down":
+                next_position=position+step;
+                if( next_position>255 || next_position<0 )
+                    next_position=position;  
+                stop=board[position].b_bottom;
+                if(chess[next_position]==1) stop=1;
+                break;
+            case "left":      
+                next_position=position+step;
+                if( next_position>255 || next_position<0 )
+                    next_position=position;  
+                stop=board[position].b_left;
+                if(chess[next_position]==1) stop=1;
+                break;
+            case "right":
+                next_position=position+step;
+                if( next_position>255 || next_position<0 )
+                    next_position=position;  
+                stop=board[position].b_right;
+                if(chess[next_position]==1) stop=1;
+                
+                break;
+        }
+        if(stop!=1){
+            position+=step;
+            if( position>255 || position<0 )
+                position-=step;
+        }
+        add_implicit_move(position);
+    }
+    return position;
+}
+
+function robot_move_init()
+{
+    //init move array
+    var i;
+    for(i=0;i<256;i++){
+        move[i]=0;
+        chess[i]=0;
+        implicit_move_1[i]=0;
+    }
+}
+/* input position, board_available */
+/* globe: move */
+var i=0;
+var first_iter=1;
+function robot_move(position,iter)
+{        
+    var cur_pos=position;
+    move[cur_pos]=iter;
+    iter++;
+    i++;
+    var move_up=next_stop(cur_pos,"up");
+    var move_down=next_stop(cur_pos,"down");
+    var move_left=next_stop(cur_pos,"left");
+    var move_right=next_stop(cur_pos,"right");
+   
+    if(move[move_up]>(iter) || move[move_up]==0)
+        var can_move_up=1;
+    if(move[move_down]>(iter) || move[move_down]==0)
+        var can_move_down=1;
+    if(move[move_left]>(iter) || move[move_left]==0)
+        var can_move_left=1;
+    if(move[move_right]>(iter) || move[move_right]==0)
+        var can_move_right=1;
+
+        
+    if(can_move_up)
+        robot_move(move_up,iter);
+    if(can_move_down)
+        robot_move(move_down,iter);
+    if(can_move_left)
+        robot_move(move_left,iter);
+    if(can_move_right)
+        robot_move(move_right,iter);
+   
+}
+
+function find_implicit_move(position)
+{        
+    var cur_pos=position;
+    
+    var move_up=next_stop_find_implicit(cur_pos,"up");
+    var move_down=next_stop_find_implicit(cur_pos,"down");
+    var move_left=next_stop_find_implicit(cur_pos,"left");
+    var move_right=next_stop_find_implicit(cur_pos,"right");        
+}
+
+function show_me_result()
+{
+    /* load parameter and check */
+    var error=0;
+    for(i=0;i<5;i++){
+        che[i] = document.getElementsByName("robot")[i].value;
+        var re = /^[0-9]+$/;
+        if (!re.test(che[i]) || che[i]>255 || che[i]<0) error=1;
+    }
+    target = document.getElementsByName("target")[0].value;
+    if(!re.test(target) || target>255 || target<0) error=1;
+    if (error){
+        alert("not 0-255!");
+    }
+    /* init board */
+    load_defaut_board();
+    robot_move_init();
+    /* add che into board */
+    for(i=0;i<5;i++){
+        robot_place(che[i]);
+    }
+    show_board();
+}
+
+</script>
+</head>
+<body lang=ZH-TW style='tab-interval:24.0pt;text-justify-trim:punctuation'>
+robot:&nbsp; 
+red<input type="text" name="robot" value="5">&nbsp; 
+green<input type="text" name="robot" value="55">&nbsp;  
+white<input type="text" name="robot" value="65">&nbsp;  
+yellow<input type="text" name="robot" value="118">&nbsp; 
+bule<input type="text" name="robot" value="240">&nbsp; 
+<br>
+target: <input type="text" name="target" value="78">  <button type="button" onclick="show_me_result()">Ready!</button>
+<br>
+<div class=WordSection1 style='layout-grid:18.0pt'>
+<p id="demo"></p>
+</div>
+<p class=MsoNormal><span lang=EN-US>
+<script>
+show_me_result();
+document.write("try: "+i);
+document.write("<br>step cost: "+i);
+</script>
+</span></p>
+</body>
+
+</html>
