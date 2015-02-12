@@ -89,6 +89,7 @@ var move = new Array(256);
 var implicit_move_1 = new Array(256);
 var chess = new Array(256);
 var pilot; /* target color */
+var answer = 'Not yet';
 function in2co(index) //index to coordinate
 {
     var ans=new Object();
@@ -228,7 +229,7 @@ function next_stop(position,dir)
             case "up":
                 next_position=position+step;
                 if( next_position>255 || next_position<0 )
-                    next_position=position;  
+                    next_position=position; 
                 stop=board[position].b_top;
                 if(chess[next_position]==1) stop=1;
                 break;
@@ -242,7 +243,7 @@ function next_stop(position,dir)
             case "left":      
                 next_position=position+step;
                 if( next_position>255 || next_position<0 )
-                    next_position=position;  
+                    next_position=position; 
                 stop=board[position].b_left;
                 if(chess[next_position]==1) stop=1;
                 break;
@@ -256,9 +257,9 @@ function next_stop(position,dir)
                 break;
         }
         if(stop!=1){
-            position+=step;
+            position+=Number(step);
             if( position>255 || position<0 )
-                position-=step;
+                position-=Number(step);
         }
     }
     return position;
@@ -360,14 +361,14 @@ function robot_move_init()
 }
 /* input position, board_available */
 /* globe: move */
-var i=0;
-var first_iter=1;
+var movecount = 0;
+var first_iter = 1;
 function robot_move(position,iter)
 {        
     var cur_pos=position;
     move[cur_pos]=iter;
     iter++;
-    i++;
+    movecount++;
     var move_up=next_stop(cur_pos,"up");
     var move_down=next_stop(cur_pos,"down");
     var move_left=next_stop(cur_pos,"left");
@@ -403,7 +404,10 @@ function find_implicit_move(position)
     var move_left=next_stop_find_implicit(cur_pos,"left");
     var move_right=next_stop_find_implicit(cur_pos,"right");        
 }
-
+function sortNumber(a,b)
+{
+    return a - b
+}
 function show_me_result()
 {
     /* load parameter and check */
@@ -440,11 +444,47 @@ function show_me_result()
     robot_remove(pilot_position);
     robot_move(pilot_position,first_iter);
     /* check 1 robot movement */
-    if(move[target]==0){
+    if(move[target]!=0){
+        answer=move[target];
+    }else{
+        /* check 2 robot movement */
         find_implicit_move(target);
+        robot_place(pilot_position);  
+        for(i=0;i<5;i++){
+            var min_add_move = 999;
+            var pre_move_robot;
+            var pre_move_place;
+            /* add pilot back */
+            if(che[i]!=pilot_position){ /* try other robot */
+                robot_move(Number(che[i]),first_iter);
+                for(j=0;j<256;j++){
+                    if(implicit_move_1[j]!=0){
+                        if(move[j] < min_add_move){
+                            min_add_move = move[j];
+                            pre_move_robot = i;
+                            pre_move_place = j;
+                            answer=min_add_move;
+                        }
+                    }
+                }
+            }
+        }
+        robot_remove(Number(che[pre_move_robot]));
+        robot_place(pre_move_place);
+        robot_move(pilot_position,first_iter);
+        answer+=move[target];
     }
-    show_board();
     
+    
+    show_board();
+    str = "";
+    str += "<br>step cost:"+movecount;
+    str += "<br>answer:"+answer;
+    str += "<br>pre move robot:"+pre_move_robot;
+    str += "<br>pre move step:"+min_add_move;
+    str += "<br>pre move:"+pre_move_place;
+    document.getElementById("log").innerHTML = str;
+    movecount=0;
 }
 
 </script>
@@ -468,13 +508,10 @@ target: <input type="text" name="target" value="78">  <button type="button" oncl
 <p id="demo"></p>
 </div>
 <p class=MsoNormal><span lang=EN-US>
-<script>
-show_me_result();
-document.write("try: "+i);
-document.write("<br>step cost: "+i);
-</script>
 <p id="log"></p>
 </span></p>
 </body>
-
+<script>
+show_me_result();
+</script>
 </html>
