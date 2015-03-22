@@ -165,7 +165,7 @@ function show_board()
            if((col+row)%2) str+="background_dark "; else str+="background_light ";
            
            var index=co2in(row,col);
-           if(move[index]) str+="background_red ";
+           //if(move[index]) str+="background_red ";
            if(target==index) str+="background_blue ";
            if(implicit_move_1[index]) str+="background_yellow ";
            if(che[0]==index) str+="occupied_r ";
@@ -359,10 +359,20 @@ function robot_move_init()
         implicit_move_1[i]=0;
     }
 }
+
+function move_init()
+{
+    //init move array
+    var i;
+    for(i=0;i<256;i++){
+        move[i]=0;
+    }
+}
+
 /* input position, board_available */
 /* globe: move */
 var movecount = 0;
-var first_iter = 1;
+var first_iter = 0;
 function robot_move(position,iter)
 {        
     var cur_pos=position;
@@ -443,22 +453,37 @@ function show_me_result()
     i=0;
     robot_remove(pilot_position);
     robot_move(pilot_position,first_iter);
+ 
     /* check 1 robot movement */
     if(move[target]!=0){
         answer=move[target];
-    }else{
+    }else{        
+        var min_add_move = 999;
+        var pre_move_robot;
+        var pre_move_place;   
         /* check 2 robot movement */
-        find_implicit_move(target);
-        robot_place(pilot_position);  
+        
+        /* remove all che */
         for(i=0;i<5;i++){
-            var min_add_move = 999;
-            var pre_move_robot;
-            var pre_move_place;
-            /* add pilot back */
+            robot_remove(che[i]);
+        }
+        
+        find_implicit_move(target);
+
+        
+        /* add pilot back */  
+        for(i=0;i<5;i++){
+            robot_place(che[i]);
+        }
+           
+         
+        for(i=0;i<5;i++){
             if(che[i]!=pilot_position){ /* try other robot */
+                robot_remove(che[i]);
+                move_init();
                 robot_move(Number(che[i]),first_iter);
                 for(j=0;j<256;j++){
-                    if(implicit_move_1[j]!=0){
+                    if(implicit_move_1[j]!=0 && move[j]!=0){
                         if(move[j] < min_add_move){
                             min_add_move = move[j];
                             pre_move_robot = i;
@@ -469,18 +494,28 @@ function show_me_result()
                 }
             }
         }
-        robot_remove(Number(che[pre_move_robot]));
-        robot_place(pre_move_place);
+
+        
+        che[pre_move_robot]=pre_move_place;
+
+        /* init board */
+        load_defaut_board();
+        robot_move_init();
+        /* add che onto board */
+        for(i=0;i<5;i++){
+            robot_place(che[i]);
+        }
+        robot_remove(pilot_position);
         robot_move(pilot_position,first_iter);
         answer+=move[target];
-    }
-    
+    } 
+
     
     show_board();
     str = "";
     str += "<br>step cost:"+movecount;
     str += "<br>answer:"+answer;
-    str += "<br>pre move robot:"+pre_move_robot;
+    str += "<br>pre move robot:"+color_index[pre_move_robot];
     str += "<br>pre move step:"+min_add_move;
     str += "<br>pre move:"+pre_move_place;
     document.getElementById("log").innerHTML = str;
@@ -497,13 +532,13 @@ white<input type="text" name="robot" value="65">&nbsp;
 yellow<input type="text" name="robot" value="118">&nbsp; 
 bule<input type="text" name="robot" value="240">&nbsp; 
 <br>
-target: <input type="text" name="target" value="78">  <button type="button" onclick="show_me_result()">Ready!</button>
-<input  type="radio" name="pilot" value="red" checked>red&nbsp; 
-<input  type="radio" name="pilot" value="green">green&nbsp; 
+target: <input type="text" name="target" value="37">  <button type="button" onclick="show_me_result()">Ready!</button>
+<input  type="radio" name="pilot" value="red">red&nbsp; 
+<input  type="radio" name="pilot" value="green" checked>green&nbsp; 
 <input  type="radio" name="pilot" value="white">white&nbsp; 
 <input  type="radio" name="pilot" value="yellow">yellow&nbsp; 
 <input  type="radio" name="pilot" value="blue">blue&nbsp; 
-<br>ss
+<br>
 <div class=WordSection1 style='layout-grid:18.0pt'>
 <p id="demo"></p>
 </div>
